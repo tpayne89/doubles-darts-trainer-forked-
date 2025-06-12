@@ -287,7 +287,7 @@ export default function App() {
           onClick={() => setShowLeaderboard(true)}
           className="print-button"
         >
-          Leaderboard
+          My Scores
         </button>
       </div>
 
@@ -313,7 +313,7 @@ export default function App() {
             >
               X
             </button>
-            <h3>Leaderboard (Fewest Darts)</h3>
+            <h3>My Scores (Fewest Darts)</h3>
             <table>
               <thead>
                 <tr>
