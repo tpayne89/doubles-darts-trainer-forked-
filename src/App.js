@@ -6,6 +6,7 @@ import autoTable from "jspdf-autotable";
 const doubles = Array.from({ length: 20 }, (_, i) => i + 1);
 
 export default function App() {
+  const [count, setCount] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [throws, setThrows] = useState([]);
   const [pendingThrows, setPendingThrows] = useState([]);
@@ -36,6 +37,16 @@ export default function App() {
       submitThrows();
     }
   }, [pendingThrows]);
+
+  useEffect(() => {
+  fetch("https://api.countapi.xyz/hit/dartsdoublestrainer.netlify.app/visits")
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("Visitor count:", data);
+      setCount(data.value);
+    })
+    .catch((err) => console.error("Visitor count error:", err));
+}, []);
 
   const logThrow = (result) => {
     if (pendingThrows.length >= 3) return;
@@ -195,6 +206,11 @@ export default function App() {
 
   return (
     <div className="app-container">
+        {/* 👈 Visitor counter in top-left */}
+    <div style={{ position: "absolute", top: "10px", left: "10px", fontSize: "0.9rem", color: "#666" }}>
+      Visitors: {count === null ? "Loading..." : count}
+    </div>
+      
       <div style={{ position: "absolute", top: 10, right: 10 }}>
         <button onClick={() => setSoundOn(!soundOn)}>
           {soundOn ? "🔊" : "🔇"}
