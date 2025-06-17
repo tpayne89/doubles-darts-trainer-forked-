@@ -173,6 +173,8 @@ export default function App() {
       ["Hit Rate", `${hitRate}%`],
     ];
 
+    headlineStats.push(["Doubles Skipped", skippedDoubles.length.toString()]);
+    
     const roundLengths = submittedRounds.map((r) => r.length);
     const sorted = [...roundLengths].sort((a, b) => a - b);
     let median = "-";
