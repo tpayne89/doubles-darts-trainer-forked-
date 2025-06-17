@@ -18,6 +18,7 @@ export default function App() {
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [username, setUsername] = useState("");
   const [soundOn, setSoundOn] = useState(true);
+  const [skippedDoubles, setSkippedDoubles] = useState([]);
   const [leaderboard, setLeaderboard] = useState(() => {
     const stored = localStorage.getItem("leaderboard");
     return stored ? JSON.parse(stored) : [];
@@ -40,7 +41,7 @@ export default function App() {
 
   // UPDATED visitor count fetch from Netlify function
   useEffect(() => {
-    fetch('/.netlify/functions/visitorCount')
+    fetch("/.netlify/functions/visitorCount")
       .then((res) => res.json())
       .then((data) => {
         console.log("Visitor count:", data);
@@ -51,12 +52,32 @@ export default function App() {
 
   const logThrow = (result) => {
     if (pendingThrows.length >= 3) return;
-    const newThrow = { result, double: currentDouble };
+  
+    // Use the current double at time of throw
+    const doubleForThisThrow = doubles[currentIndex];
+  
+    const newThrow = { result, double: doubleForThisThrow };
     setPendingThrows([...pendingThrows, newThrow]);
+  
     if (result === "hit" && currentIndex < doubles.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
+  
+  const skipCurrentDouble = () => {
+    // Add the current double to skippedDoubles
+    setSkippedDoubles((prev) => [...prev, doubles[currentIndex]]);
+  
+    // Move current double forward immediately
+    if (currentIndex < doubles.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  
+    // DO NOT clear pendingThrows here
+    // So pendingThrows remain visible for the new double
+  };
+  
+  
 
   const undo = () => {
     if (pendingThrows.length > 0) {
@@ -71,7 +92,9 @@ export default function App() {
       setSubmittedRounds(submittedRounds.slice(0, -1));
       setThrows(throws.slice(0, -lastRound.length));
       setPendingThrows(lastRound);
-      const hitsInLastRound = lastRound.filter((t) => t.result === "hit").length;
+      const hitsInLastRound = lastRound.filter(
+        (t) => t.result === "hit"
+      ).length;
       setCurrentIndex((prev) => Math.max(0, prev - hitsInLastRound));
       ignoreAutoSubmitRef.current = true;
     }
@@ -101,10 +124,19 @@ export default function App() {
   const hitRate = total > 0 ? ((hits / total) * 100).toFixed(1) : "-";
 
   const statsByDouble = doubles.map((double) => {
-    const throwsForDouble = allThrows.filter((t) => t.double === double);
-    const hits = throwsForDouble.filter((t) => t.result === "hit").length;
+    const throwsForDouble = allThrows.filter(
+      (t) => t.double === double && t.result !== "skip"
+    );
     const attempts = throwsForDouble.length;
+
+    if (skippedDoubles.includes(double)) {
+      // Show attempts but no hit rate because it was skipped
+      return { double, attempts, rate: "-" };
+    }
+
+    const hits = throwsForDouble.filter((t) => t.result === "hit").length;
     const rate = attempts > 0 ? ((hits / attempts) * 100).toFixed(1) : "-";
+
     return { double, attempts, rate };
   });
 
@@ -173,7 +205,9 @@ export default function App() {
 
     const logHeaders = [["Throw 1", "Throw 2", "Throw 3"]];
     const logData = submittedRounds.map((round) =>
-      round.map((t) => (t.result === "hit" ? `Hit D${t.double}` : `Miss D${t.double}`))
+      round.map((t) =>
+        t.result === "hit" ? `Hit D${t.double}` : `Miss D${t.double}`
+      )
     );
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 10,
@@ -188,7 +222,9 @@ export default function App() {
 
   const handleUsernameSubmit = () => {
     const entry = { username, darts: total };
-    const updated = [...leaderboard, entry].sort((a, b) => a.darts - b.darts).slice(0, 10);
+    const updated = [...leaderboard, entry]
+      .sort((a, b) => a.darts - b.darts)
+      .slice(0, 10);
     setLeaderboard(updated);
     localStorage.setItem("leaderboard", JSON.stringify(updated));
     setShowUsernamePrompt(false);
@@ -211,7 +247,9 @@ export default function App() {
       </div>
 
       <div style={{ position: "absolute", top: 10, right: 10 }}>
-        <button onClick={() => setSoundOn(!soundOn)}>{soundOn ? "🔊" : "🔇"}</button>
+        <button onClick={() => setSoundOn(!soundOn)}>
+          {soundOn ? "🔊" : "🔇"}
+        </button>
       </div>
 
       <h1 className="title">Darts Doubles Trainer</h1>
@@ -258,10 +296,16 @@ export default function App() {
       </div>
 
       <div className="button-group">
-        <button onClick={() => logThrow("miss")} disabled={pendingThrows.length >= 3}>
+        <button
+          onClick={() => logThrow("miss")}
+          disabled={pendingThrows.length >= 3}
+        >
           Miss
         </button>
-        <button onClick={() => logThrow("hit")} disabled={pendingThrows.length >= 3}>
+        <button
+          onClick={() => logThrow("hit")}
+          disabled={pendingThrows.length >= 3}
+        >
           D{currentDouble}
         </button>
         <button onClick={submitThrows}>Submit</button>
@@ -271,6 +315,7 @@ export default function App() {
         className="undo-group"
         style={{ marginTop: "1rem", display: "flex", justifyContent: "center" }}
       >
+        <button className="skip-button" onClick={skipCurrentDouble}>Skip</button>
         <button
           onClick={undo}
           disabled={pendingThrows.length === 0 && submittedRounds.length === 0}
@@ -290,7 +335,10 @@ export default function App() {
         <button onClick={printResults} className="print-button">
           Print Results
         </button>
-        <button onClick={() => setShowLeaderboard(true)} className="print-button">
+        <button
+          onClick={() => setShowLeaderboard(true)}
+          className="print-button"
+        >
           My Scores
         </button>
       </div>
@@ -299,7 +347,10 @@ export default function App() {
         <div className="modal">
           <div className="modal-content">
             <h3>Enter your name for the leaderboard</h3>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
             <button onClick={handleUsernameSubmit}>Submit</button>
           </div>
         </div>
@@ -308,7 +359,10 @@ export default function App() {
       {showLeaderboard && (
         <div className="modal">
           <div className="modal-content">
-            <button onClick={() => setShowLeaderboard(false)} style={{ float: "right" }}>
+            <button
+              onClick={() => setShowLeaderboard(false)}
+              style={{ float: "right" }}
+            >
               X
             </button>
             <h3>My Scores (Fewest Darts)</h3>
@@ -381,8 +435,13 @@ export default function App() {
             {submittedRounds.map((round, i) => (
               <tr key={i}>
                 {round.map((t, j) => (
-                  <td key={j} style={{ color: t.result === "hit" ? "green" : "red" }}>
-                    {t.result === "hit" ? `Hit D${t.double}` : `Miss D${t.double}`}
+                  <td
+                    key={j}
+                    style={{ color: t.result === "hit" ? "green" : "red" }}
+                  >
+                    {t.result === "hit"
+                      ? `Hit D${t.double}`
+                      : `Miss D${t.double}`}
                   </td>
                 ))}
               </tr>
