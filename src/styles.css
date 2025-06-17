@@ -103,6 +103,13 @@
   cursor: not-allowed;
 }
 
+.undo-group button.skip-button {
+  background-color: purple;  /* Purple color */
+  padding: 0.6rem 1.5rem;    /* Smaller padding */
+  margin-right: 1rem;        /* Gap to the right */
+  min-width: 60px;           /* Slightly smaller min-width */
+}
+
 .stats-table,
 .log-table {
   width: 100%;
