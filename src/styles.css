@@ -104,10 +104,10 @@
 }
 
 .undo-group button.skip-button {
-  background-color: purple;  /* Purple color */
-  padding: 0.6rem 1.5rem;    /* Smaller padding */
-  margin-right: 1rem;        /* Gap to the right */
-  min-width: 60px;           /* Slightly smaller min-width */
+  background-color: purple; /* Purple color */
+  padding: 0.6rem 1.5rem; /* Smaller padding */
+  margin-right: 1rem; /* Gap to the right */
+  min-width: 60px; /* Slightly smaller min-width */
 }
 
 .stats-table,
@@ -176,4 +176,17 @@
 .toggle-button:hover {
   color: #555; /* slightly darker grey on hover */
   text-decoration: underline;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 0rem;
+}
+
+.dartboard-highlight {
+  width: 80px;
+  min-width: 80px;
+  margin-right: 1rem;
 }
