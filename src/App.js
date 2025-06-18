@@ -41,6 +41,40 @@ export default function App() {
     }
   }, [pendingThrows]);
 
+  // Key handling effect
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (showUsernamePrompt || showLeaderboard) return; // Ignore keys during modals
+
+      switch (e.key) {
+        case "Enter":
+          submitThrows();
+          break;
+        case "s":
+        case "S":
+          skipCurrentDouble();
+          break;
+        case "h":
+        case "H":
+          if (pendingThrows.length < 3) logThrow("hit");
+          break;
+        case "m":
+        case "M":
+          if (pendingThrows.length < 3) logThrow("miss");
+          break;
+        case "Backspace":
+          e.preventDefault(); // Prevent browser back navigation
+          undo();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pendingThrows, currentIndex, showUsernamePrompt, showLeaderboard]);
+
   // UPDATED visitor count fetch from Netlify function
   useEffect(() => {
     fetch("/.netlify/functions/visitorCount")
@@ -104,15 +138,8 @@ export default function App() {
   };
 
   const submitThrows = () => {
-    // Play sound
-    if (soundOn) dingAudioRef.current.play();
-
-    // Flash inner circle
-    setFlash("#2196f3"); // Same blue as your submit button
-    setTimeout(() => setFlash(null), 300); // Clear the flash after 300ms
-
-    // Handle throw submission
     if (pendingThrows.length === 0) {
+      // If no throws pending, treat as 3 misses for current double
       const misses = Array(3).fill({ result: "miss", double: currentDouble });
       setThrows([...throws, ...misses]);
       setSubmittedRounds([...submittedRounds, misses]);
@@ -120,6 +147,13 @@ export default function App() {
       setThrows([...throws, ...pendingThrows]);
       setSubmittedRounds([...submittedRounds, pendingThrows]);
     }
+
+    // Play sound
+    if (soundOn) dingAudioRef.current.play();
+
+    // Flash inner circle
+    setFlash("#2196f3"); // Same blue as your submit button
+    setTimeout(() => setFlash(null), 300); // Clear the flash after 300ms
 
     setPendingThrows([]);
 
