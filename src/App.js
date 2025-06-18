@@ -2,11 +2,13 @@ import "./styles.css";
 import React, { useState, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import DartboardHighlight from "./DartboardHighlight";
 
 const doubles = Array.from({ length: 20 }, (_, i) => i + 1);
 
 export default function App() {
   const [count, setCount] = useState(null);
+  const [flash, setFlash] = useState(null); // null or color string
   const [currentIndex, setCurrentIndex] = useState(0);
   const [throws, setThrows] = useState([]);
   const [pendingThrows, setPendingThrows] = useState([]);
@@ -52,32 +54,33 @@ export default function App() {
 
   const logThrow = (result) => {
     if (pendingThrows.length >= 3) return;
-  
+
     // Use the current double at time of throw
     const doubleForThisThrow = doubles[currentIndex];
-  
+
     const newThrow = { result, double: doubleForThisThrow };
     setPendingThrows([...pendingThrows, newThrow]);
-  
+
     if (result === "hit" && currentIndex < doubles.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
-  
+
   const skipCurrentDouble = () => {
+    setFlash("#800080");
+    setTimeout(() => setFlash(null), 300); // Clear the flash after 300ms
+
     // Add the current double to skippedDoubles
     setSkippedDoubles((prev) => [...prev, doubles[currentIndex]]);
-  
+
     // Move current double forward immediately
     if (currentIndex < doubles.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
-  
+
     // DO NOT clear pendingThrows here
     // So pendingThrows remain visible for the new double
   };
-  
-  
 
   const undo = () => {
     if (pendingThrows.length > 0) {
@@ -101,7 +104,14 @@ export default function App() {
   };
 
   const submitThrows = () => {
+    // Play sound
     if (soundOn) dingAudioRef.current.play();
+
+    // Flash inner circle
+    setFlash("#2196f3"); // Same blue as your submit button
+    setTimeout(() => setFlash(null), 300); // Clear the flash after 300ms
+
+    // Handle throw submission
     if (pendingThrows.length === 0) {
       const misses = Array(3).fill({ result: "miss", double: currentDouble });
       setThrows([...throws, ...misses]);
@@ -110,6 +120,7 @@ export default function App() {
       setThrows([...throws, ...pendingThrows]);
       setSubmittedRounds([...submittedRounds, pendingThrows]);
     }
+
     setPendingThrows([]);
 
     if (currentDouble === 20 && pendingThrows.some((t) => t.result === "hit")) {
@@ -174,10 +185,12 @@ export default function App() {
     ];
 
     headlineStats.push([
-  "Doubles Skipped",
-  `${skippedDoubles.length} (${skippedDoubles.map((d) => `D${d}`).join(", ")})`,
-]);
-    
+      "Doubles Skipped",
+      `${skippedDoubles.length} (${skippedDoubles
+        .map((d) => `D${d}`)
+        .join(", ")})`,
+    ]);
+
     const roundLengths = submittedRounds.map((r) => r.length);
     const sorted = [...roundLengths].sort((a, b) => a - b);
     let median = "-";
@@ -258,9 +271,24 @@ export default function App() {
       </div>
 
       <h1 className="title">Darts Doubles Trainer</h1>
-      <h2 className="subtitle">
-        Target: <strong>D{currentDouble}</strong>
-      </h2>
+
+      <div
+        className="header-row"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          marginBottom: "0rem",
+          paddingBottom: "0", // ADD this
+        }}
+      >
+        <div style={{ width: "100px", height: "60px" }}>
+          <DartboardHighlight
+            currentDouble={currentDouble}
+            flashColor={flash}
+          />
+        </div>
+      </div>
 
       <div className="toggle-container">
         <button
@@ -320,7 +348,9 @@ export default function App() {
         className="undo-group"
         style={{ marginTop: "1rem", display: "flex", justifyContent: "center" }}
       >
-        <button className="skip-button" onClick={skipCurrentDouble}>Skip</button>
+        <button className="skip-button" onClick={skipCurrentDouble}>
+          Skip
+        </button>
         <button
           onClick={undo}
           disabled={pendingThrows.length === 0 && submittedRounds.length === 0}
