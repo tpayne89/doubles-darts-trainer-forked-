@@ -173,7 +173,10 @@ export default function App() {
       ["Hit Rate", `${hitRate}%`],
     ];
 
-    headlineStats.push(["Doubles Skipped", skippedDoubles.length.toString()]);
+    headlineStats.push([
+  "Doubles Skipped",
+  `${skippedDoubles.length} (${skippedDoubles.map((d) => `D${d}`).join(", ")})`,
+]);
     
     const roundLengths = submittedRounds.map((r) => r.length);
     const sorted = [...roundLengths].sort((a, b) => a - b);
