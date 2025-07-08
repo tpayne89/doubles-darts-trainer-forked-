@@ -284,7 +284,7 @@ export default function App() {
       body: logData,
     });
 
-    // Add heatmap image converted from SVG to PNG using canvas
+    // Add heatmap image converted from SVG to high-res PNG using canvas
     if (heatmapRef.current) {
       const svgElement = heatmapRef.current.querySelector("svg");
       const svgData = new XMLSerializer().serializeToString(svgElement);
@@ -295,33 +295,42 @@ export default function App() {
 
       const img = new Image();
       img.onload = () => {
-        const imgWidth = 100;
-        const imgHeight = 100;
+        const canvasWidth = 600;
+        const canvasHeight = 600;
 
-        // Create canvas and draw SVG image onto it
         const canvas = document.createElement("canvas");
-        canvas.width = imgWidth;
-        canvas.height = imgHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, imgWidth, imgHeight);
-        ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
 
-        // Get PNG data URL from canvas
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+
         const pngDataUrl = canvas.toDataURL("image/png");
 
-        // Add PNG to PDF
         const pageWidth = doc.internal.pageSize.getWidth();
-        const x = (pageWidth - imgWidth) / 2;
+        const imgDisplayWidth = 100;
+        const imgDisplayHeight = (imgDisplayWidth * canvasHeight) / canvasWidth;
+        const x = (pageWidth - imgDisplayWidth) / 2;
         const y = doc.lastAutoTable.finalY + 10;
 
-        doc.addImage(pngDataUrl, "PNG", x, y, imgWidth, imgHeight);
+        doc.addImage(
+          pngDataUrl,
+          "PNG",
+          x,
+          y,
+          imgDisplayWidth,
+          imgDisplayHeight
+        );
         doc.save("darts-results.pdf");
         URL.revokeObjectURL(url);
       };
+
       img.onerror = (err) => {
         console.error("Image load error:", err);
-        doc.save("darts-results.pdf"); // fallback to saving PDF without image
+        doc.save("darts-results.pdf"); // fallback
       };
+
       img.src = url;
     } else {
       doc.save("darts-results.pdf");
