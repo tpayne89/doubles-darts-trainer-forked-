@@ -41,10 +41,9 @@ export default function App() {
     }
   }, [pendingThrows]);
 
-  // Key handling effect
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showUsernamePrompt || showLeaderboard) return; // Ignore keys during modals
+      if (showUsernamePrompt || showLeaderboard) return;
 
       switch (e.key) {
         case "Enter":
@@ -63,7 +62,7 @@ export default function App() {
           if (pendingThrows.length < 3) logThrow("miss");
           break;
         case "Backspace":
-          e.preventDefault(); // Prevent browser back navigation
+          e.preventDefault();
           undo();
           break;
         default:
@@ -75,12 +74,10 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pendingThrows, currentIndex, showUsernamePrompt, showLeaderboard]);
 
-  // UPDATED visitor count fetch from Netlify function
   useEffect(() => {
     fetch("/.netlify/functions/visitorCount")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Visitor count:", data);
         setCount(data.value);
       })
       .catch((err) => console.error("Visitor count error:", err));
@@ -89,9 +86,7 @@ export default function App() {
   const logThrow = (result) => {
     if (pendingThrows.length >= 3) return;
 
-    // Use the current double at time of throw
     const doubleForThisThrow = doubles[currentIndex];
-
     const newThrow = { result, double: doubleForThisThrow };
     setPendingThrows([...pendingThrows, newThrow]);
 
@@ -102,18 +97,11 @@ export default function App() {
 
   const skipCurrentDouble = () => {
     setFlash("#800080");
-    setTimeout(() => setFlash(null), 300); // Clear the flash after 300ms
-
-    // Add the current double to skippedDoubles
+    setTimeout(() => setFlash(null), 300);
     setSkippedDoubles((prev) => [...prev, doubles[currentIndex]]);
-
-    // Move current double forward immediately
     if (currentIndex < doubles.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
-
-    // DO NOT clear pendingThrows here
-    // So pendingThrows remain visible for the new double
   };
 
   const undo = () => {
@@ -121,7 +109,6 @@ export default function App() {
       const lastThrow = pendingThrows[pendingThrows.length - 1];
       const updatedThrows = pendingThrows.slice(0, -1);
 
-      // Only roll back if the throw you're undoing was a hit
       if (lastThrow.result === "hit" && currentIndex > 0) {
         setCurrentIndex(currentIndex - 1);
       }
@@ -137,16 +124,12 @@ export default function App() {
       setThrows(newThrows);
       setPendingThrows(lastRound);
 
-      // ✅ DO NOT update currentIndex here.
-      // Let the user undo throws one by one,
-      // and roll back only when a hit is actually undone.
       ignoreAutoSubmitRef.current = true;
     }
   };
 
   const submitThrows = () => {
     if (pendingThrows.length === 0) {
-      // If no throws pending, treat as 3 misses for current double
       const misses = Array(3).fill({ result: "miss", double: currentDouble });
       setThrows([...throws, ...misses]);
       setSubmittedRounds([...submittedRounds, misses]);
@@ -155,13 +138,9 @@ export default function App() {
       setSubmittedRounds([...submittedRounds, pendingThrows]);
     }
 
-    // Play sound
     if (soundOn) dingAudioRef.current.play();
-
-    // Flash inner circle
-    setFlash("#2196f3"); // Same blue as your submit button
-    setTimeout(() => setFlash(null), 300); // Clear the flash after 300ms
-
+    setFlash("#2196f3");
+    setTimeout(() => setFlash(null), 300);
     setPendingThrows([]);
 
     if (currentDouble === 20 && pendingThrows.some((t) => t.result === "hit")) {
@@ -182,7 +161,6 @@ export default function App() {
     const attempts = throwsForDouble.length;
 
     if (skippedDoubles.includes(double)) {
-      // Show attempts but no hit rate because it was skipped
       return { double, attempts, rate: "-" };
     }
 
@@ -191,6 +169,33 @@ export default function App() {
 
     return { double, attempts, rate };
   });
+
+  // Determine highest double with any attempts
+  const highestDoubleWithAttempts = (() => {
+    for (let i = doubles.length - 1; i >= 0; i--) {
+      const double = doubles[i];
+      const attemptsForDouble = allThrows.filter(
+        (t) => t.double === double && t.result !== "skip"
+      ).length;
+      if (attemptsForDouble > 0) {
+        return double;
+      }
+    }
+    return 0;
+  })();
+
+  // Add cumulative attempts conditionally
+  const statsWithCumulative = statsByDouble.map(
+    ({ double, attempts, rate }, i) => {
+      if (double > highestDoubleWithAttempts) {
+        return { double, attempts: 0, rate: "-", cumulative: 0 };
+      }
+      const cumulative = statsByDouble
+        .slice(0, i + 1)
+        .reduce((sum, item) => sum + item.attempts, 0);
+      return { double, attempts, rate, cumulative };
+    }
+  );
 
   const getHitRateColor = (rateStr) => {
     if (rateStr === "-") return "#ccc";
@@ -250,12 +255,14 @@ export default function App() {
       body: headlineStats,
     });
 
-    const statsHeaders = [["Double", "Attempts", "Hit Rate"]];
-    const statsData = statsByDouble.map(({ double, attempts, rate }) => [
-      `D${double}`,
-      attempts.toString(),
-      `${rate}%`,
-    ]);
+    const statsHeaders = [["Double", "Attempts (Cumulative)", "Hit Rate"]];
+    const statsData = statsWithCumulative.map(
+      ({ double, attempts, cumulative, rate }) => [
+        `D${double}`,
+        `${attempts} (${cumulative})`,
+        `${rate}%`,
+      ]
+    );
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 10,
       head: statsHeaders,
@@ -292,7 +299,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Visitor counter in top-left */}
       <div
         style={{
           position: "absolute",
@@ -320,7 +326,7 @@ export default function App() {
           justifyContent: "center",
           alignItems: "center",
           marginBottom: "0rem",
-          paddingBottom: "0", // ADD this
+          paddingBottom: "0",
         }}
       >
         <div style={{ width: "100px", height: "60px" }}>
@@ -361,11 +367,7 @@ export default function App() {
           const t = pendingThrows[i];
           const bg = t ? (t.result === "hit" ? "green" : "red") : "gray";
 
-          const text = t
-            ? t.result === "hit"
-              ? `D${t.double}` // 👈 Show the actual double
-              : "Miss"
-            : "-";
+          const text = t ? (t.result === "hit" ? `D${t.double}` : "Miss") : "-";
 
           return (
             <div key={i} className={`throw-box ${bg}`}>
@@ -488,18 +490,22 @@ export default function App() {
           <thead>
             <tr>
               <th>Double</th>
-              <th>Attempts</th>
+              <th>Attempts (Cumulative)</th>
               <th>Hit Rate</th>
             </tr>
           </thead>
           <tbody>
-            {statsByDouble.map(({ double, attempts, rate }) => (
-              <tr key={double}>
-                <td>D{double}</td>
-                <td>{attempts}</td>
-                <td style={{ color: getHitRateColor(rate) }}>{rate}%</td>
-              </tr>
-            ))}
+            {statsWithCumulative.map(
+              ({ double, attempts, cumulative, rate }) => (
+                <tr key={double}>
+                  <td>D{double}</td>
+                  <td>
+                    {attempts} ({cumulative})
+                  </td>
+                  <td style={{ color: getHitRateColor(rate) }}>{rate}%</td>
+                </tr>
+              )
+            )}
           </tbody>
         </table>
       )}
