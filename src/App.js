@@ -11,6 +11,7 @@ export default function App() {
   const [count, setCount] = useState(null);
   const [flash, setFlash] = useState(null); // null or color string
   const [showHeatmap, setShowHeatmap] = useState(true);
+  const heatmapRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [throws, setThrows] = useState([]);
   const [pendingThrows, setPendingThrows] = useState([]);
@@ -265,11 +266,6 @@ export default function App() {
         `${rate}%`,
       ]
     );
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
-      head: statsHeaders,
-      body: statsData,
-    });
 
     const logHeaders = [["Throw 1", "Throw 2", "Throw 3"]];
     const logData = submittedRounds.map((round) =>
@@ -277,13 +273,58 @@ export default function App() {
         t.result === "hit" ? `Hit D${t.double}` : `Miss D${t.double}`
       )
     );
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
-      head: logHeaders,
-      body: logData,
-    });
 
-    doc.save("darts-results.pdf");
+    if (heatmapRef.current) {
+      const svgElement = heatmapRef.current.querySelector("svg");
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgData], {
+        type: "image/svg+xml;charset=utf-8",
+      });
+      const url = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      img.onload = () => {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const imgWidth = 100;
+        const imgHeight = 100;
+        const x = (pageWidth - imgWidth) / 2;
+        const y1 = doc.lastAutoTable.finalY + 10;
+
+        autoTable(doc, {
+          startY: y1,
+          head: statsHeaders,
+          body: statsData,
+        });
+
+        autoTable(doc, {
+          startY: doc.lastAutoTable.finalY + 10,
+          head: logHeaders,
+          body: logData,
+        });
+
+        const y2 = doc.lastAutoTable.finalY + 10;
+        doc.addImage(img, "PNG", x, y2, imgWidth, imgHeight);
+
+        doc.save("darts-results.pdf");
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    } else {
+      // Fallback if SVG is not available
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 10,
+        head: statsHeaders,
+        body: statsData,
+      });
+
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 10,
+        head: logHeaders,
+        body: logData,
+      });
+
+      doc.save("darts-results.pdf");
+    }
   };
 
   const toggleLabel = (visible) => `${visible ? "▼ Hide" : "▶ Show"}`;
@@ -555,7 +596,9 @@ export default function App() {
             pointerEvents: "none", // <-- ignore mouse/touch events here
           }}
         >
-          <DartboardHeatmap stats={statsByDouble} />
+          <div ref={heatmapRef} style={{ pointerEvents: "auto" }}>
+            <DartboardHeatmap stats={statsByDouble} />
+          </div>
         </div>
       )}
     </div>
