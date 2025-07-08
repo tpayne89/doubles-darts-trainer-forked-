@@ -551,7 +551,7 @@ export default function App() {
           style={{
             display: "flex",
             justifyContent: "center",
-            marginTop: "1rem",
+            marginTop: "-40px", // negative margin to pull up
           }}
         >
           <DartboardHeatmap stats={statsByDouble} />
