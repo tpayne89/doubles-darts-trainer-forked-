@@ -3,12 +3,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import DartboardHighlight from "./DartboardHighlight";
+import DartboardHeatmap from "./DartboardHeatmap";
 
 const doubles = Array.from({ length: 20 }, (_, i) => i + 1);
 
 export default function App() {
   const [count, setCount] = useState(null);
   const [flash, setFlash] = useState(null); // null or color string
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [throws, setThrows] = useState([]);
   const [pendingThrows, setPendingThrows] = useState([]);
@@ -483,6 +485,12 @@ export default function App() {
         >
           {toggleLabel(showLogTable)} log
         </button>
+        <button
+          onClick={() => setShowHeatmap(!showHeatmap)}
+          className="toggle-button"
+        >
+          {toggleLabel(showHeatmap)} heat map
+        </button>
       </div>
 
       {showStatsTable && (
@@ -536,6 +544,18 @@ export default function App() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {showHeatmap && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginTop: "1rem",
+          }}
+        >
+          <DartboardHeatmap stats={statsByDouble} />
+        </div>
       )}
     </div>
   );
