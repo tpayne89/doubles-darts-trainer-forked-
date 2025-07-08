@@ -10,7 +10,7 @@ const doubles = Array.from({ length: 20 }, (_, i) => i + 1);
 export default function App() {
   const [count, setCount] = useState(null);
   const [flash, setFlash] = useState(null); // null or color string
-  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [throws, setThrows] = useState([]);
   const [pendingThrows, setPendingThrows] = useState([]);
