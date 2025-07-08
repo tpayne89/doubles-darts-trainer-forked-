@@ -266,6 +266,11 @@ export default function App() {
         `${rate}%`,
       ]
     );
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 10,
+      head: statsHeaders,
+      body: statsData,
+    });
 
     const logHeaders = [["Throw 1", "Throw 2", "Throw 3"]];
     const logData = submittedRounds.map((round) =>
@@ -273,7 +278,13 @@ export default function App() {
         t.result === "hit" ? `Hit D${t.double}` : `Miss D${t.double}`
       )
     );
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 10,
+      head: logHeaders,
+      body: logData,
+    });
 
+    // Add heatmap image converted from SVG to PNG using canvas
     if (heatmapRef.current) {
       const svgElement = heatmapRef.current.querySelector("svg");
       const svgData = new XMLSerializer().serializeToString(svgElement);
@@ -284,45 +295,35 @@ export default function App() {
 
       const img = new Image();
       img.onload = () => {
-        const pageWidth = doc.internal.pageSize.getWidth();
         const imgWidth = 100;
         const imgHeight = 100;
+
+        // Create canvas and draw SVG image onto it
+        const canvas = document.createElement("canvas");
+        canvas.width = imgWidth;
+        canvas.height = imgHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, imgWidth, imgHeight);
+        ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+
+        // Get PNG data URL from canvas
+        const pngDataUrl = canvas.toDataURL("image/png");
+
+        // Add PNG to PDF
+        const pageWidth = doc.internal.pageSize.getWidth();
         const x = (pageWidth - imgWidth) / 2;
-        const y1 = doc.lastAutoTable.finalY + 10;
+        const y = doc.lastAutoTable.finalY + 10;
 
-        autoTable(doc, {
-          startY: y1,
-          head: statsHeaders,
-          body: statsData,
-        });
-
-        autoTable(doc, {
-          startY: doc.lastAutoTable.finalY + 10,
-          head: logHeaders,
-          body: logData,
-        });
-
-        const y2 = doc.lastAutoTable.finalY + 10;
-        doc.addImage(img, "PNG", x, y2, imgWidth, imgHeight);
-
+        doc.addImage(pngDataUrl, "PNG", x, y, imgWidth, imgHeight);
         doc.save("darts-results.pdf");
         URL.revokeObjectURL(url);
       };
+      img.onerror = (err) => {
+        console.error("Image load error:", err);
+        doc.save("darts-results.pdf"); // fallback to saving PDF without image
+      };
       img.src = url;
     } else {
-      // Fallback if SVG is not available
-      autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 10,
-        head: statsHeaders,
-        body: statsData,
-      });
-
-      autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 10,
-        head: logHeaders,
-        body: logData,
-      });
-
       doc.save("darts-results.pdf");
     }
   };
