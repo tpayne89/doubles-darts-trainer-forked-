@@ -552,6 +552,7 @@ export default function App() {
             display: "flex",
             justifyContent: "center",
             marginTop: "-40px", // negative margin to pull up
+            pointerEvents: "none", // <-- ignore mouse/touch events here
           }}
         >
           <DartboardHeatmap stats={statsByDouble} />
