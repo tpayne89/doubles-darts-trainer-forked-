@@ -116,7 +116,7 @@ export default function App() {
     // So pendingThrows remain visible for the new double
   };
 
-const undo = () => {
+  const undo = () => {
     if (pendingThrows.length > 0) {
       const lastThrow = pendingThrows[pendingThrows.length - 1];
       const updatedThrows = pendingThrows.slice(0, -1);
@@ -143,7 +143,6 @@ const undo = () => {
       ignoreAutoSubmitRef.current = true;
     }
   };
-
 
   const submitThrows = () => {
     if (pendingThrows.length === 0) {
@@ -361,7 +360,13 @@ const undo = () => {
         {[0, 1, 2].map((i) => {
           const t = pendingThrows[i];
           const bg = t ? (t.result === "hit" ? "green" : "red") : "gray";
-          const text = t ? (t.result === "hit" ? "Hit" : "Miss") : "-";
+
+          const text = t
+            ? t.result === "hit"
+              ? `D${t.double}` // 👈 Show the actual double
+              : "Miss"
+            : "-";
+
           return (
             <div key={i} className={`throw-box ${bg}`}>
               {text}
