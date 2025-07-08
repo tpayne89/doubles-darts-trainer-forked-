@@ -117,33 +117,32 @@ export default function App() {
   };
 
 const undo = () => {
-  if (pendingThrows.length > 0) {
-    const lastThrow = pendingThrows[pendingThrows.length - 1];
-    const updatedThrows = pendingThrows.slice(0, -1);
+    if (pendingThrows.length > 0) {
+      const lastThrow = pendingThrows[pendingThrows.length - 1];
+      const updatedThrows = pendingThrows.slice(0, -1);
 
-    // Only roll back if you're undoing the only hit in this set
-    const wasLastThrowTheOnlyHit =
-      lastThrow.result === "hit" &&
-      pendingThrows.filter((t) => t.result === "hit").length === 1;
+      // Only roll back if the throw you're undoing was a hit
+      if (lastThrow.result === "hit" && currentIndex > 0) {
+        setCurrentIndex(currentIndex - 1);
+      }
 
-    if (wasLastThrowTheOnlyHit && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+      setPendingThrows(updatedThrows);
+      ignoreAutoSubmitRef.current = true;
+    } else if (submittedRounds.length > 0) {
+      const lastRound = submittedRounds[submittedRounds.length - 1];
+      const newSubmitted = submittedRounds.slice(0, -1);
+      const newThrows = throws.slice(0, -lastRound.length);
+
+      setSubmittedRounds(newSubmitted);
+      setThrows(newThrows);
+      setPendingThrows(lastRound);
+
+      // ✅ DO NOT update currentIndex here.
+      // Let the user undo throws one by one,
+      // and roll back only when a hit is actually undone.
+      ignoreAutoSubmitRef.current = true;
     }
-
-    setPendingThrows(updatedThrows);
-    ignoreAutoSubmitRef.current = true;
-  } else if (submittedRounds.length > 0) {
-    const lastRound = submittedRounds[submittedRounds.length - 1];
-    setSubmittedRounds(submittedRounds.slice(0, -1));
-    setThrows(throws.slice(0, -lastRound.length));
-    setPendingThrows(lastRound);
-    const hitsInLastRound = lastRound.filter(
-      (t) => t.result === "hit"
-    ).length;
-    setCurrentIndex((prev) => Math.max(0, prev - hitsInLastRound));
-    ignoreAutoSubmitRef.current = true;
-  }
-};
+  };
 
 
   const submitThrows = () => {
