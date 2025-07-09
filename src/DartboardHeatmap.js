@@ -165,7 +165,7 @@ const DartboardHeatmap = ({ stats = [] }) => {
   };
 
   return (
-    <svg width="300" height="300" viewBox="0 0 300 300">
+    <svg width="300" height="215" viewBox="45 42 215 215">
       <g transform="rotate(-9, 150, 150)">
         {renderSegments()}
         {renderSegmentLines()}
