@@ -309,19 +309,32 @@ export default function App() {
         const pngDataUrl = canvas.toDataURL("image/png");
 
         const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
         const imgDisplayWidth = 100;
         const imgDisplayHeight = (imgDisplayWidth * canvasHeight) / canvasWidth;
         const x = (pageWidth - imgDisplayWidth) / 2;
         const y = doc.lastAutoTable.finalY + 10;
 
-        doc.addImage(
-          pngDataUrl,
-          "PNG",
-          x,
-          y,
-          imgDisplayWidth,
-          imgDisplayHeight
-        );
+        if (y + imgDisplayHeight > pageHeight) {
+          doc.addPage();
+          doc.addImage(
+            pngDataUrl,
+            "PNG",
+            x,
+            10,
+            imgDisplayWidth,
+            imgDisplayHeight
+          );
+        } else {
+          doc.addImage(
+            pngDataUrl,
+            "PNG",
+            x,
+            y,
+            imgDisplayWidth,
+            imgDisplayHeight
+          );
+        }
         doc.save("darts-results.pdf");
         URL.revokeObjectURL(url);
       };
