@@ -430,54 +430,66 @@ export default function App() {
         })}
       </div>
 
-      <div className="button-group">
-        <button
-          onClick={() => logThrow("miss")}
-          disabled={pendingThrows.length >= 3}
-        >
-          Miss
-        </button>
-        <button
-          onClick={() => logThrow("hit")}
-          disabled={pendingThrows.length >= 3}
-        >
-          D{currentDouble}
-        </button>
-        <button onClick={submitThrows}>Submit</button>
+      <div className="button-group-container">
+        <div className="button-group">
+          <button
+            onClick={() => logThrow("miss")}
+            disabled={pendingThrows.length >= 3}
+          >
+            Miss
+          </button>
+          <button
+            onClick={() => logThrow("hit")}
+            disabled={pendingThrows.length >= 3}
+          >
+            D{currentDouble}
+          </button>
+          <button onClick={submitThrows}>Submit</button>
+        </div>
       </div>
 
-      <div
-        className="undo-group"
-        style={{ marginTop: "1rem", display: "flex", justifyContent: "center" }}
-      >
-        <button className="skip-button" onClick={skipCurrentDouble}>
-          Skip
-        </button>
-        <button
-          onClick={undo}
-          disabled={pendingThrows.length === 0 && submittedRounds.length === 0}
+      <div className="undo-group-container">
+        <div
+          className="undo-group"
+          style={{
+            marginTop: "1rem",
+            display: "flex",
+            justifyContent: "center",
+          }}
         >
-          Undo
-        </button>
+          <button className="skip-button" onClick={skipCurrentDouble}>
+            Skip
+          </button>
+          <button
+            onClick={undo}
+            disabled={
+              pendingThrows.length === 0 && submittedRounds.length === 0
+            }
+          >
+            Undo
+          </button>
+        </div>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          gap: "1rem",
-          marginTop: "1rem",
-        }}
-      >
-        <button onClick={printResults} className="print-button">
-          Print Results
-        </button>
-        <button
-          onClick={() => setShowLeaderboard(true)}
-          className="print-button"
+      <div className="print-buttons-container">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "1rem",
+            marginTop: "1rem",
+          }}
         >
-          My Scores
-        </button>
+          <button onClick={printResults} className="print-button">
+            Print Results
+          </button>
+          <button
+            onClick={() => setShowLeaderboard(true)}
+            className="print-button"
+          >
+            My Scores
+          </button>
+        </div>
       </div>
 
       {showUsernamePrompt && (
@@ -523,91 +535,101 @@ export default function App() {
         </div>
       )}
 
-      <div className="toggle-container">
-        <button
-          onClick={() => setShowStatsTable(!showStatsTable)}
-          className="toggle-button"
-        >
-          {toggleLabel(showStatsTable)} stats table
-        </button>
-        <button
-          onClick={() => setShowLogTable(!showLogTable)}
-          className="toggle-button"
-        >
-          {toggleLabel(showLogTable)} log
-        </button>
-        <button
-          onClick={() => setShowHeatmap(!showHeatmap)}
-          className="toggle-button"
-        >
-          {toggleLabel(showHeatmap)} heat map
-        </button>
+      {/* Toggle Buttons */}
+      <div className="toggle-buttons-container">
+        <div className="toggle-container">
+          <button
+            onClick={() => setShowStatsTable(!showStatsTable)}
+            className="toggle-button"
+          >
+            {toggleLabel(showStatsTable)} stats table
+          </button>
+          <button
+            onClick={() => setShowLogTable(!showLogTable)}
+            className="toggle-button"
+          >
+            {toggleLabel(showLogTable)} log
+          </button>
+          <button
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className="toggle-button"
+          >
+            {toggleLabel(showHeatmap)} heat map
+          </button>
+        </div>
       </div>
 
+      {/* Stats Table */}
       {showStatsTable && (
-        <table className="stats-table">
-          <thead>
-            <tr>
-              <th>Double</th>
-              <th>Attempts (Cumulative)</th>
-              <th>Hit Rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            {statsWithCumulative.map(
-              ({ double, attempts, cumulative, rate }) => (
-                <tr key={double}>
-                  <td>D{double}</td>
-                  <td>
-                    {attempts} ({cumulative})
-                  </td>
-                  <td style={{ color: getHitRateColor(rate) }}>{rate}%</td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      )}
-
-      {showLogTable && (
-        <table className="log-table">
-          <thead>
-            <tr>
-              <th>Throw 1</th>
-              <th>Throw 2</th>
-              <th>Throw 3</th>
-            </tr>
-          </thead>
-          <tbody>
-            {submittedRounds.map((round, i) => (
-              <tr key={i}>
-                {round.map((t, j) => (
-                  <td
-                    key={j}
-                    style={{ color: t.result === "hit" ? "green" : "red" }}
-                  >
-                    {t.result === "hit"
-                      ? `Hit D${t.double}`
-                      : `Miss D${t.double}`}
-                  </td>
-                ))}
+        <div className="stats-table-container">
+          <table className="stats-table">
+            <thead>
+              <tr>
+                <th>Double</th>
+                <th>Attempts (Cumulative)</th>
+                <th>Hit Rate</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {statsWithCumulative.map(
+                ({ double, attempts, cumulative, rate }) => (
+                  <tr key={double}>
+                    <td>D{double}</td>
+                    <td>
+                      {attempts} ({cumulative})
+                    </td>
+                    <td style={{ color: getHitRateColor(rate) }}>{rate}%</td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
+      {/* Log Table */}
+      {showLogTable && (
+        <div className="log-table-container">
+          <table className="log-table">
+            <thead>
+              <tr>
+                <th>Throw 1</th>
+                <th>Throw 2</th>
+                <th>Throw 3</th>
+              </tr>
+            </thead>
+            <tbody>
+              {submittedRounds.map((round, i) => (
+                <tr key={i}>
+                  {round.map((t, j) => (
+                    <td
+                      key={j}
+                      style={{ color: t.result === "hit" ? "green" : "red" }}
+                    >
+                      {t.result === "hit"
+                        ? `Hit D${t.double}`
+                        : `Miss D${t.double}`}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Heatmap */}
       {showHeatmap && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: "-40px", // negative margin to pull up
-            pointerEvents: "none", // <-- ignore mouse/touch events here
-          }}
-        >
-          <div ref={heatmapRef} style={{ pointerEvents: "auto" }}>
-            <DartboardHeatmap stats={statsByDouble} />
+        <div className="heatmap-container">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <div ref={heatmapRef} style={{ pointerEvents: "auto" }}>
+              <DartboardHeatmap stats={statsByDouble} />
+            </div>
           </div>
         </div>
       )}
