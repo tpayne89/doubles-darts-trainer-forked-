@@ -388,6 +388,7 @@ export default function App() {
       <div
         className="header-row"
         style={{
+          position: "relative", // added for positioning toggle inside
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -401,16 +402,31 @@ export default function App() {
             flashColor={flash}
           />
         </div>
+
+        {/* Toggle container absolutely positioned inside header-row */}
+        <div
+          className="toggle-container"
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 10,
+            backgroundColor: "white", // optional: to avoid overlap confusion
+            padding: "0.2rem 0.5rem",
+            borderRadius: "0.3rem",
+            boxShadow: "0 0 5px rgba(0,0,0,0.1)",
+          }}
+        >
+          <button
+            onClick={() => setShowTopStats(!showTopStats)}
+            className="toggle-button"
+          >
+            {toggleLabel(showTopStats)} top stats
+          </button>
+        </div>
       </div>
 
-      <div className="toggle-container">
-        <button
-          onClick={() => setShowTopStats(!showTopStats)}
-          className="toggle-button"
-        >
-          {toggleLabel(showTopStats)} top stats
-        </button>
-      </div>
       {showTopStats && (
         <div className="stats-grid">
           <div>
