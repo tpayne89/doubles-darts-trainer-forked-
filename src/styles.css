@@ -6,7 +6,7 @@
 
 .title {
   font-size: 1.5rem;
-  margin-bottom: 0rem;
+  margin-bottom: 0.2rem;
 }
 
 .subtitle {
@@ -18,7 +18,8 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
+  margin-top: 0.25rem;
   max-width: 300px;
   margin-inline: auto;
   text-align: left;
@@ -29,6 +30,7 @@
   justify-content: center;
   gap: 1rem;
   margin-bottom: 1rem;
+  margin-top: 0.4rem;
 }
 
 .throw-box {
@@ -53,21 +55,21 @@
 .button-group {
   display: flex;
   justify-content: center;
-  gap: 0.5rem; /* Reduced gap */
+  gap: 0.5rem;
   margin-bottom: 0rem;
-  flex-wrap: nowrap; /* Prevent wrapping */
+  flex-wrap: nowrap;
 }
 
 .button-group button {
-  flex: 1 1 0; /* Allows buttons to shrink if needed */
-  padding: 2rem 1rem; /* Reduced padding */
+  flex: 1 1 0;
+  padding: 2rem 1rem;
   font-size: 1rem;
   border: none;
   border-radius: 1rem;
   cursor: pointer;
   color: white;
   font-weight: bold;
-  min-width: 70px; /* Prevents too-small buttons */
+  min-width: 70px;
 }
 
 .button-group button:disabled {
@@ -104,10 +106,10 @@
 }
 
 .undo-group button.skip-button {
-  background-color: purple; /* Purple color */
-  padding: 0.6rem 1.5rem; /* Smaller padding */
-  margin-right: 1rem; /* Gap to the right */
-  min-width: 60px; /* Slightly smaller min-width */
+  background-color: purple;
+  padding: 0.6rem 1.5rem;
+  margin-right: 1rem;
+  min-width: 60px;
 }
 
 .stats-table,
@@ -133,12 +135,12 @@
 }
 
 .hit-text {
-  color: #4caf50; /* green */
+  color: #4caf50;
   font-weight: bold;
 }
 
 .miss-text {
-  color: #f44336; /* red */
+  color: #f44336;
   font-weight: bold;
 }
 
@@ -157,15 +159,40 @@
   background-color: #e9c93c;
 }
 
-.toggle-container {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0rem 0;
+.header-row {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.header-row .toggle-container {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  z-index: 10;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.header-row .toggle-container button {
+  all: unset; /* full reset */
+  font-size: 0.8rem;
+  color: #777;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  text-align: right;
+}
+
+.header-row .toggle-container button:hover {
+  color: #555;
+  text-decoration: underline;
 }
 
 .toggle-button {
   font-size: 0.8rem;
-  color: #777; /* light grey */
+  color: #777;
   background: none;
   border: none;
   cursor: pointer;
@@ -174,15 +201,8 @@
 }
 
 .toggle-button:hover {
-  color: #555; /* slightly darker grey on hover */
+  color: #555;
   text-decoration: underline;
-}
-
-.header-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 0rem;
 }
 
 .dartboard-highlight {
