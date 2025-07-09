@@ -1,12 +1,12 @@
 .app-container {
   font-family: sans-serif;
-  padding: 1rem;
+  padding: 0.4rem;
   text-align: center;
 }
 
 .title {
   font-size: 1.5rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0rem;
 }
 
 .subtitle {
@@ -54,7 +54,7 @@
   display: flex;
   justify-content: center;
   gap: 0.5rem; /* Reduced gap */
-  margin-bottom: 1rem;
+  margin-bottom: 0rem;
   flex-wrap: nowrap; /* Prevent wrapping */
 }
 
@@ -160,7 +160,7 @@
 .toggle-container {
   display: flex;
   justify-content: flex-end;
-  margin: 0.5rem 0;
+  margin: 0rem 0;
 }
 
 .toggle-button {
@@ -189,22 +189,4 @@
   width: 80px;
   min-width: 80px;
   margin-right: 1rem;
-}
-
-.heatmap-container {
-  display: flex;
-  justify-content: center;
-  pointer-events: auto;
-}
-
-.heatmap-container svg {
-  max-width: 100%;
-  height: auto;
-}
-
-.toggle-container {
-  position: relative;
-  z-index: 10;
-  background-color: white; /* or whatever your background is */
-  padding: 0.5rem;
 }
