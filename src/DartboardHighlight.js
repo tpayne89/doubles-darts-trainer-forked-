@@ -1,17 +1,41 @@
 import React from "react";
 
-const DartboardHighlight = ({ currentDouble, flashColor }) => {
+const DartboardHighlight = ({
+  currentDouble,
+  flashColor,
+  mode = "doubles",
+}) => {
   const dartboardOrder = [
     6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20, 1, 18, 4, 13,
   ];
 
-  const segments = [];
   const cx = 50;
   const cy = 50;
   const rInner = 40;
   const rOuter = 50;
   const angleStep = (2 * Math.PI) / 20;
 
+  // Helper to display appropriate label
+  const getDisplayText = (value) => {
+    if (value === undefined || value === null) return "";
+    if (value === 50) return "Bull";
+    if (value === 25) return "25";
+    if (mode === "singles") return `${value}`;
+    if (mode === "trebles") return `T${value}`;
+    return `D${value}`;
+  };
+
+  const isOuterBull = currentDouble === 25;
+  const isInnerBull = currentDouble === 50;
+  const highlightAll = isOuterBull || isInnerBull;
+  const highlightColor = isOuterBull
+    ? "green"
+    : isInnerBull
+    ? "red"
+    : flashColor || "red";
+
+  // Create 20 segments
+  const segments = [];
   for (let i = 0; i < 20; i++) {
     const startAngle = i * angleStep;
     const endAngle = (i + 1) * angleStep;
@@ -34,13 +58,20 @@ const DartboardHighlight = ({ currentDouble, flashColor }) => {
       Z
     `;
 
-    const isCurrent = dartboardOrder[i] === currentDouble;
+    const segmentNumber = dartboardOrder[i];
+    const isCurrent = segmentNumber === currentDouble;
+
+    const fillColor = highlightAll
+      ? highlightColor
+      : isCurrent
+      ? highlightColor
+      : "#ccc";
 
     segments.push(
       <path
         key={i}
         d={pathData}
-        fill={isCurrent ? "red" : "#ccc"}
+        fill={fillColor}
         stroke="white"
         strokeWidth="0.5"
       />
@@ -48,19 +79,32 @@ const DartboardHighlight = ({ currentDouble, flashColor }) => {
   }
 
   return (
-    <svg width="60" height="60" viewBox="0 0 100 100">
+    <svg
+      width="60"
+      height="60"
+      viewBox="0 0 100 100"
+      aria-label={`Current target: ${currentDouble}`}
+    >
       <g transform="rotate(-9, 50, 50)">{segments}</g>
-      <circle cx="50" cy="50" r="38" fill={flashColor || "white"} />
+
+      {/* No bulls-eye highlight circles */}
+
+      {/* Optional subtle center highlight for non-bull */}
+      {!highlightAll && flashColor && (
+        <circle cx={cx} cy={cy} r={38} fill={flashColor} opacity={1} />
+      )}
+
+      {/* Text label below the board */}
       <text
         x="50"
         y="60"
         textAnchor="middle"
         fontWeight="bold"
-        fontSize="30"
+        fontSize="28"
         fill="#333"
         fontFamily="Arial"
       >
-        D{currentDouble}
+        {getDisplayText(currentDouble)}
       </text>
     </svg>
   );
