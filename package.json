@@ -7,27 +7,28 @@
     "react",
     "starter"
   ],
-  "main": "src/index.js",
+  "main": "src/index.tsx",
   "dependencies": {
-    "loader-utils": "3.2.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-scripts": "5.0.1",
     "jspdf": "3.0.1",
     "jspdf-autotable": "5.0.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "7.7.0",
     "firebase-admin": "^11.10.1",
-    "react-router-dom": "7.7.0"
+    "scheduler": "^0.26.0"
   },
   "devDependencies": {
-    "@types/react": "18.2.38",
+    "@types/react": "18.0.37",
     "@types/react-dom": "18.2.15",
-    "typescript": "4.4.4"
+    "@types/scheduler": "^0.26.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "4.4.4",
+    "vite": "^5.0.11"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "browserslist": [
     ">0.2%",
