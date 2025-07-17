@@ -1,667 +1,299 @@
+import React, { useState, useEffect } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
+import AppSingles from "./AppSingles";
+import AppSinglesSkip from "./AppSinglesSkip";
+import AppDoubles from "./AppDoubles";
+import AppTrebles from "./AppTrebles";
 import "./styles.css";
-import React, { useState, useEffect, useRef } from "react";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
-import DartboardHighlight from "./DartboardHighlight";
-import DartboardHeatmap from "./DartboardHeatmap";
 
-const doubles = Array.from({ length: 20 }, (_, i) => i + 1);
+const LEADERBOARD_KEYS = {
+  "Singles (End)": "leaderboard_singles_end",
+  "Singles (Bull)": "leaderboard_singles_bull",
+  "Singles (Inner Bull)": "leaderboard_singles_inner",
+  "Singles Skip (End)": "leaderboard_singles_skip_end",
+  "Singles Skip (Bull)": "leaderboard_singles_skip_bull",
+  "Singles Skip (Inner Bull)": "leaderboard_singles_skip_inner",
+  "Doubles (End)": "leaderboard_doubles_end",
+  "Doubles (Bull)": "leaderboard_doubles_bull",
+  "Doubles (Inner Bull)": "leaderboard_doubles_inner",
+  "Trebles (End)": "leaderboard_trebles_end",
+  "Trebles (Bull)": "leaderboard_trebles_bull",
+  "Trebles (Inner Bull)": "leaderboard_trebles_inner",
+};
 
 export default function App() {
-  const [count, setCount] = useState(null);
-  const [flash, setFlash] = useState(null); // null or color string
-  const [showHeatmap, setShowHeatmap] = useState(true);
-  const heatmapRef = useRef(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [throws, setThrows] = useState([]);
-  const [pendingThrows, setPendingThrows] = useState([]);
-  const [submittedRounds, setSubmittedRounds] = useState([]);
-  const [showTopStats, setShowTopStats] = useState(true);
-  const [showStatsTable, setShowStatsTable] = useState(true);
-  const [showLogTable, setShowLogTable] = useState(true);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
-  const [username, setUsername] = useState("");
-  const [soundOn, setSoundOn] = useState(true);
-  const [skippedDoubles, setSkippedDoubles] = useState([]);
-  const [leaderboard, setLeaderboard] = useState(() => {
-    const stored = localStorage.getItem("leaderboard");
-    return stored ? JSON.parse(stored) : [];
-  });
+  const navigate = useNavigate();
 
-  const currentDouble = doubles[currentIndex];
-  const ignoreAutoSubmitRef = useRef(false);
-  const dingAudioRef = useRef(new Audio("/ding-126626.mp3"));
+  const [mode, setMode] = useState("doubles");
+  const [enableSkips, setEnableSkips] = useState(false);
+  const [endOption, setEndOption] = useState("end");
 
+  const options = { enableSkips, endOption };
+
+  // MIGRATION: On first load, migrate old "leaderboard" data to new key "leaderboard_doubles_end"
   useEffect(() => {
-    if (pendingThrows.length === 3) {
-      if (ignoreAutoSubmitRef.current) {
-        ignoreAutoSubmitRef.current = false;
-        return;
+    const oldKey = "leaderboard";
+    const newKey = LEADERBOARD_KEYS["Doubles (End)"];
+    if (localStorage.getItem(oldKey) && !localStorage.getItem(newKey)) {
+      try {
+        const oldData = localStorage.getItem(oldKey);
+        localStorage.setItem(newKey, oldData);
+        localStorage.removeItem(oldKey);
+        console.log("Migrated old leaderboard data to new key:", newKey);
+      } catch (e) {
+        console.error("Error migrating leaderboard data:", e);
       }
-      if (soundOn) dingAudioRef.current.play();
-      submitThrows();
     }
-  }, [pendingThrows]);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (showUsernamePrompt || showLeaderboard) return;
-
-      switch (e.key) {
-        case "Enter":
-          submitThrows();
-          break;
-        case "s":
-        case "S":
-          skipCurrentDouble();
-          break;
-        case "h":
-        case "H":
-          if (pendingThrows.length < 3) logThrow("hit");
-          break;
-        case "m":
-        case "M":
-          if (pendingThrows.length < 3) logThrow("miss");
-          break;
-        case "Backspace":
-          e.preventDefault();
-          undo();
-          break;
-        default:
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pendingThrows, currentIndex, showUsernamePrompt, showLeaderboard]);
-
-  useEffect(() => {
-    fetch("/.netlify/functions/visitorCount")
-      .then((res) => res.json())
-      .then((data) => {
-        setCount(data.value);
-      })
-      .catch((err) => console.error("Visitor count error:", err));
   }, []);
 
-  const logThrow = (result) => {
-    if (pendingThrows.length >= 3) return;
+  // Leaderboard dropdown state, default to Doubles (End) to show migrated data easily
+  const [selectedLeaderboard, setSelectedLeaderboard] =
+    useState("Doubles (End)");
+  const [leaderboardData, setLeaderboardData] = useState([]);
 
-    const doubleForThisThrow = doubles[currentIndex];
-    const newThrow = { result, double: doubleForThisThrow };
-    setPendingThrows([...pendingThrows, newThrow]);
-
-    if (result === "hit" && currentIndex < doubles.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+  // Load leaderboard data when selectedLeaderboard changes
+  useEffect(() => {
+    const key = LEADERBOARD_KEYS[selectedLeaderboard];
+    if (!key) {
+      setLeaderboardData([]);
+      return;
     }
-  };
-
-  const skipCurrentDouble = () => {
-    setFlash("#800080");
-    setTimeout(() => setFlash(null), 300);
-    setSkippedDoubles((prev) => [...prev, doubles[currentIndex]]);
-    if (currentIndex < doubles.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const undo = () => {
-    if (pendingThrows.length > 0) {
-      const lastThrow = pendingThrows[pendingThrows.length - 1];
-      const updatedThrows = pendingThrows.slice(0, -1);
-
-      if (lastThrow.result === "hit" && currentIndex > 0) {
-        setCurrentIndex(currentIndex - 1);
-      }
-
-      setPendingThrows(updatedThrows);
-      ignoreAutoSubmitRef.current = true;
-    } else if (submittedRounds.length > 0) {
-      const lastRound = submittedRounds[submittedRounds.length - 1];
-      const newSubmitted = submittedRounds.slice(0, -1);
-      const newThrows = throws.slice(0, -lastRound.length);
-
-      setSubmittedRounds(newSubmitted);
-      setThrows(newThrows);
-      setPendingThrows(lastRound);
-
-      ignoreAutoSubmitRef.current = true;
-    }
-  };
-
-  const submitThrows = () => {
-    if (pendingThrows.length === 0) {
-      const misses = Array(3).fill({ result: "miss", double: currentDouble });
-      setThrows([...throws, ...misses]);
-      setSubmittedRounds([...submittedRounds, misses]);
-    } else {
-      setThrows([...throws, ...pendingThrows]);
-      setSubmittedRounds([...submittedRounds, pendingThrows]);
-    }
-
-    if (soundOn) dingAudioRef.current.play();
-    setFlash("#2196f3");
-    setTimeout(() => setFlash(null), 300);
-    setPendingThrows([]);
-
-    if (currentDouble === 20 && pendingThrows.some((t) => t.result === "hit")) {
-      setShowUsernamePrompt(true);
-    }
-  };
-
-  const allThrows = [...throws, ...pendingThrows];
-  const hits = allThrows.filter((t) => t.result === "hit").length;
-  const misses = allThrows.filter((t) => t.result === "miss").length;
-  const total = allThrows.length;
-  const hitRate = total > 0 ? ((hits / total) * 100).toFixed(1) : "-";
-
-  const statsByDouble = doubles.map((double) => {
-    const throwsForDouble = allThrows.filter(
-      (t) => t.double === double && t.result !== "skip"
-    );
-    const attempts = throwsForDouble.length;
-
-    if (skippedDoubles.includes(double)) {
-      return { double, attempts, rate: "-" };
-    }
-
-    const hits = throwsForDouble.filter((t) => t.result === "hit").length;
-    const rate = attempts > 0 ? ((hits / attempts) * 100).toFixed(1) : "-";
-
-    return { double, attempts, rate };
-  });
-
-  // Determine highest double with any attempts
-  const highestDoubleWithAttempts = (() => {
-    for (let i = doubles.length - 1; i >= 0; i--) {
-      const double = doubles[i];
-      const attemptsForDouble = allThrows.filter(
-        (t) => t.double === double && t.result !== "skip"
-      ).length;
-      if (attemptsForDouble > 0) {
-        return double;
-      }
-    }
-    return 0;
-  })();
-
-  // Add cumulative attempts conditionally
-  const statsWithCumulative = statsByDouble.map(
-    ({ double, attempts, rate }, i) => {
-      if (double > highestDoubleWithAttempts) {
-        return { double, attempts: 0, rate: "-", cumulative: 0 };
-      }
-      const cumulative = statsByDouble
-        .slice(0, i + 1)
-        .reduce((sum, item) => sum + item.attempts, 0);
-      return { double, attempts, rate, cumulative };
-    }
-  );
-
-  const getHitRateColor = (rateStr) => {
-    if (rateStr === "-") return "#ccc";
-    const rate = parseFloat(rateStr);
-    if (rate >= 10) {
-      const g = Math.min(255, Math.round(100 + ((rate - 10) / 90) * 100));
-      return `rgb(0,${g},0)`;
-    } else if (rate >= 5) {
-      const ratio = (rate - 5) / 5;
-      const g = Math.round(120 + ratio * 80);
-      return `rgb(255,${g},0)`;
-    } else if (rate >= 0) {
-      const r = Math.round(150 + (rate / 5) * 105);
-      return `rgb(${r},0,0)`;
-    } else {
-      return "#ccc";
-    }
-  };
-
-  const printResults = () => {
-    const doc = new jsPDF();
-    const dateStr = new Date().toLocaleString();
-    doc.setFontSize(18);
-    doc.text("Darts Doubles Trainer Results", 14, 20);
-    doc.setFontSize(12);
-    doc.text(`Date: ${dateStr}`, 14, 30);
-
-    const headlineStats = [
-      ["Hits", hits.toString()],
-      ["Misses", misses.toString()],
-      ["Darts Thrown", total.toString()],
-      ["Hit Rate", `${hitRate}%`],
-    ];
-
-    headlineStats.push([
-      "Doubles Skipped",
-      `${skippedDoubles.length} (${skippedDoubles
-        .map((d) => `D${d}`)
-        .join(", ")})`,
-    ]);
-
-    const roundLengths = submittedRounds.map((r) => r.length);
-    const sorted = [...roundLengths].sort((a, b) => a - b);
-    let median = "-";
-    if (sorted.length > 0) {
-      const mid = Math.floor(sorted.length / 2);
-      median =
-        sorted.length % 2 === 0
-          ? ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1)
-          : sorted[mid].toString();
-      headlineStats.push(["Median Darts per Round", median]);
-    }
-
-    autoTable(doc, {
-      startY: 40,
-      head: [["Stat", "Value"]],
-      body: headlineStats,
-    });
-
-    const statsHeaders = [["Double", "Attempts (Cumulative)", "Hit Rate"]];
-    const statsData = statsWithCumulative.map(
-      ({ double, attempts, cumulative, rate }) => [
-        `D${double}`,
-        `${attempts} (${cumulative})`,
-        `${rate}%`,
-      ]
-    );
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
-      head: statsHeaders,
-      body: statsData,
-    });
-
-    const logHeaders = [["Throw 1", "Throw 2", "Throw 3"]];
-    const logData = submittedRounds.map((round) =>
-      round.map((t) =>
-        t.result === "hit" ? `Hit D${t.double}` : `Miss D${t.double}`
-      )
-    );
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
-      head: logHeaders,
-      body: logData,
-    });
-
-    // Add heatmap image converted from SVG to high-res PNG using canvas
-    if (heatmapRef.current) {
-      const svgElement = heatmapRef.current.querySelector("svg");
-      const svgData = new XMLSerializer().serializeToString(svgElement);
-      const svgBlob = new Blob([svgData], {
-        type: "image/svg+xml;charset=utf-8",
-      });
-      const url = URL.createObjectURL(svgBlob);
-
-      const img = new Image();
-      img.onload = () => {
-        const canvasWidth = 600;
-        const canvasHeight = 600;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-
-        const pngDataUrl = canvas.toDataURL("image/png");
-
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const imgDisplayWidth = 100;
-        const imgDisplayHeight = (imgDisplayWidth * canvasHeight) / canvasWidth;
-        const x = (pageWidth - imgDisplayWidth) / 2;
-        const y = doc.lastAutoTable.finalY + 10;
-
-        if (y + imgDisplayHeight > pageHeight) {
-          doc.addPage();
-          doc.addImage(
-            pngDataUrl,
-            "PNG",
-            x,
-            10,
-            imgDisplayWidth,
-            imgDisplayHeight
-          );
-        } else {
-          doc.addImage(
-            pngDataUrl,
-            "PNG",
-            x,
-            y,
-            imgDisplayWidth,
-            imgDisplayHeight
-          );
-        }
-        doc.save("darts-results.pdf");
-        URL.revokeObjectURL(url);
-      };
-
-      img.onerror = (err) => {
-        console.error("Image load error:", err);
-        doc.save("darts-results.pdf"); // fallback
-      };
-
-      img.src = url;
-    } else {
-      doc.save("darts-results.pdf");
-    }
-  };
-
-  const toggleLabel = (visible) => `${visible ? "▼ Hide" : "▶ Show"}`;
-
-  const handleUsernameSubmit = () => {
-    const entry = { username, darts: total };
-    const updated = [...leaderboard, entry]
-      .sort((a, b) => a.darts - b.darts)
-      .slice(0, 10);
-    setLeaderboard(updated);
-    localStorage.setItem("leaderboard", JSON.stringify(updated));
-    setShowUsernamePrompt(false);
-    setUsername("");
-  };
+    const stored = localStorage.getItem(key);
+    setLeaderboardData(stored ? JSON.parse(stored) : []);
+  }, [selectedLeaderboard]);
 
   return (
-    <div className="app-container">
-      <div
-        style={{
-          position: "absolute",
-          top: "10px",
-          left: "10px",
-          fontSize: "0.9rem",
-          color: "#666",
-        }}
-      >
-        Visitors: {count === null ? "Loading..." : count}
-      </div>
-
-      <div style={{ position: "absolute", top: 10, right: 10 }}>
-        <button onClick={() => setSoundOn(!soundOn)}>
-          {soundOn ? "🔊" : "🔇"}
-        </button>
-      </div>
-
-      <h1 className="title">Darts Doubles Trainer</h1>
-
-      <div
-        className="header-row"
-        style={{
-          position: "relative", // added for positioning toggle inside
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginBottom: "0rem",
-          paddingBottom: "0",
-        }}
-      >
-        <div style={{ width: "100px", height: "60px" }}>
-          <DartboardHighlight
-            currentDouble={currentDouble}
-            flashColor={flash}
-          />
-        </div>
-
-        {/* Toggle container absolutely positioned inside header-row */}
-        <div
-          className="toggle-container"
-          style={{
-            position: "absolute",
-            right: 0,
-            top: "50%",
-            transform: "translateY(-50%)",
-            zIndex: 10,
-            backgroundColor: "white", // optional: to avoid overlap confusion
-            padding: "0.2rem 0.5rem",
-            borderRadius: "0.3rem",
-            boxShadow: "0 0 5px rgba(0,0,0,0.1)",
-          }}
-        >
-          <button
-            onClick={() => setShowTopStats(!showTopStats)}
-            className="toggle-button"
-          >
-            {toggleLabel(showTopStats)} top stats
-          </button>
-        </div>
-      </div>
-
-      {showTopStats && (
-        <div className="stats-grid">
-          <div>
-            <strong>Misses:</strong> {misses}
-          </div>
-          <div>
-            <strong>Hits:</strong> {hits}
-          </div>
-          <div>
-            <strong>Darts Thrown:</strong> {total}
-          </div>
-          <div>
-            <strong>Hit Rate:</strong> {hitRate}%
-          </div>
-        </div>
-      )}
-
-      <div className="pending-throws">
-        {[0, 1, 2].map((i) => {
-          const t = pendingThrows[i];
-          const bg = t ? (t.result === "hit" ? "green" : "red") : "gray";
-
-          const text = t ? (t.result === "hit" ? `D${t.double}` : "Miss") : "-";
-
-          return (
-            <div key={i} className={`throw-box ${bg}`}>
-              {text}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="button-group-container">
-        <div className="button-group">
-          <button
-            onClick={() => logThrow("miss")}
-            disabled={pendingThrows.length >= 3}
-          >
-            Miss
-          </button>
-          <button
-            onClick={() => logThrow("hit")}
-            disabled={pendingThrows.length >= 3}
-          >
-            D{currentDouble}
-          </button>
-          <button onClick={submitThrows}>Submit</button>
-        </div>
-      </div>
-
-      <div className="undo-group-container">
-        <div
-          className="undo-group"
-          style={{
-            marginTop: "1rem",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <button className="skip-button" onClick={skipCurrentDouble}>
-            Skip
-          </button>
-          <button
-            onClick={undo}
-            disabled={
-              pendingThrows.length === 0 && submittedRounds.length === 0
-            }
-          >
-            Undo
-          </button>
-        </div>
-      </div>
-
-      <div className="print-buttons-container">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "1rem",
-            marginTop: "1rem",
-          }}
-        >
-          <button onClick={printResults} className="print-button">
-            Print Results
-          </button>
-          <button
-            onClick={() => setShowLeaderboard(true)}
-            className="print-button"
-          >
-            My Scores
-          </button>
-        </div>
-      </div>
-
-      {showUsernamePrompt && (
-        <div className="modal">
-          <div className="modal-content">
-            <h3>Enter your name for the leaderboard</h3>
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-            <button onClick={handleUsernameSubmit}>Submit</button>
-          </div>
-        </div>
-      )}
-
-      {showLeaderboard && (
-        <div className="modal">
-          <div className="modal-content">
-            <button
-              onClick={() => setShowLeaderboard(false)}
-              style={{ float: "right" }}
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <div className="setup-page">
+            {/* Container to stack header and setup box vertically with spacing */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "1rem",
+                paddingTop: "1rem",
+              }}
             >
-              X
-            </button>
-            <h3>My Scores (Fewest Darts)</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Darts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((entry, i) => (
-                  <tr key={i}>
-                    <td>{entry.username}</td>
-                    <td>{entry.darts}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              {/* Header with icon and title */}
+              <div
+                className="app-header"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  justifyContent: "center",
+                }}
+              >
+                <img
+                  src="/favicons/web-app-manifest-512x512.png"
+                  alt="Darts Icon"
+                  style={{ width: 40, height: 40 }}
+                />
+                <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "bold" }}>
+                  Darts Training
+                </h1>
+              </div>
 
-      {/* Toggle Buttons */}
-      <div className="toggle-buttons-container">
-        <div className="toggle-container">
-          <button
-            onClick={() => setShowStatsTable(!showStatsTable)}
-            className="toggle-button"
-          >
-            {toggleLabel(showStatsTable)} stats table
-          </button>
-          <button
-            onClick={() => setShowLogTable(!showLogTable)}
-            className="toggle-button"
-          >
-            {toggleLabel(showLogTable)} log
-          </button>
-          <button
-            onClick={() => setShowHeatmap(!showHeatmap)}
-            className="toggle-button"
-          >
-            {toggleLabel(showHeatmap)} heat map
-          </button>
-        </div>
-      </div>
+              {/* Setup box with all other content */}
+              <div className="setup-box">
+                {/* Game Mode Selection */}
+                <div className="section game-mode-section">
+                  <h2 className="section-title">Select Game Mode</h2>
+                  <div className="button-group-setup">
+                    {["singles", "doubles", "trebles"].map((m) => (
+                      <button
+                        key={m}
+                        className={`classic-button ${
+                          mode === m ? "selected" : ""
+                        }`}
+                        onClick={() => setMode(m)}
+                      >
+                        {m.charAt(0).toUpperCase() + m.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-      {/* Stats Table */}
-      {showStatsTable && (
-        <div className="stats-table-container">
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>Double</th>
-                <th>Attempts (Cumulative)</th>
-                <th>Hit Rate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {statsWithCumulative.map(
-                ({ double, attempts, cumulative, rate }) => (
-                  <tr key={double}>
-                    <td>D{double}</td>
-                    <td>
-                      {attempts} ({cumulative})
-                    </td>
-                    <td style={{ color: getHitRateColor(rate) }}>{rate}%</td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                {/* Skip Option */}
+                {mode === "singles" && (
+                  <div className="section enable-skip-section">
+                    <h3 className="section-title">Skip for Doubles/Trebles?</h3>
+                    <div className="button-group-skipsetup">
+                      <button
+                        className={`classic-button ${
+                          enableSkips ? "selected" : ""
+                        }`}
+                        onClick={() => setEnableSkips(true)}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        className={`classic-button ${
+                          !enableSkips ? "selected" : ""
+                        }`}
+                        onClick={() => setEnableSkips(false)}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-      {/* Log Table */}
-      {showLogTable && (
-        <div className="log-table-container">
-          <table className="log-table">
-            <thead>
-              <tr>
-                <th>Throw 1</th>
-                <th>Throw 2</th>
-                <th>Throw 3</th>
-              </tr>
-            </thead>
-            <tbody>
-              {submittedRounds.map((round, i) => (
-                <tr key={i}>
-                  {round.map((t, j) => (
-                    <td
-                      key={j}
-                      style={{ color: t.result === "hit" ? "green" : "red" }}
+                {/* End Option */}
+                <div className="section end-option-section">
+                  <h3 className="section-title">What happens after 20?</h3>
+                  <div className="button-group-setupend">
+                    <button
+                      className={`classic-button ${
+                        endOption === "end" ? "selected" : ""
+                      }`}
+                      onClick={() => setEndOption("end")}
                     >
-                      {t.result === "hit"
-                        ? `Hit D${t.double}`
-                        : `Miss D${t.double}`}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      End game
+                    </button>
+                    <button
+                      className={`classic-button ${
+                        endOption === "bull" ? "selected" : ""
+                      }`}
+                      onClick={() => setEndOption("bull")}
+                    >
+                      Outer + Inner Bull
+                    </button>
+                    <button
+                      className={`classic-button ${
+                        endOption === "inner" ? "selected" : ""
+                      }`}
+                      onClick={() => setEndOption("inner")}
+                    >
+                      Bull only
+                    </button>
+                  </div>
+                </div>
 
-      {/* Heatmap */}
-      {showHeatmap && (
-        <div className="heatmap-container">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
-            <div ref={heatmapRef} style={{ pointerEvents: "auto" }}>
-              <DartboardHeatmap stats={statsByDouble} />
+                {/* Start Game */}
+                <div className="section start-button-section">
+                  <button
+                    className="start-button"
+                    onClick={() => {
+                      if (mode === "singles") {
+                        navigate(enableSkips ? "/singles-skip" : "/singles");
+                      } else {
+                        navigate(`/${mode}`);
+                      }
+                    }}
+                  >
+                    Start Game
+                  </button>
+                </div>
+
+                {/* Leaderboard Dropdown */}
+                <div
+                  className="section leaderboard-section"
+                  style={{ marginTop: "2rem" }}
+                >
+                  <label
+                    htmlFor="leaderboard-select"
+                    style={{ fontWeight: "bold" }}
+                  >
+                    Select Leaderboard:
+                  </label>
+                  <select
+                    id="leaderboard-select"
+                    value={selectedLeaderboard}
+                    onChange={(e) => setSelectedLeaderboard(e.target.value)}
+                    style={{ marginLeft: "0.5rem", padding: "0.25rem" }}
+                  >
+                    {Object.keys(LEADERBOARD_KEYS).map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Leaderboard Table */}
+                  <div
+                    style={{
+                      marginTop: "1rem",
+                      maxHeight: "300px",
+                      overflowY: "auto",
+                      border: "1px solid #ccc",
+                      borderRadius: "4px",
+                      padding: "0.5rem",
+                      background: "#fafafa",
+                    }}
+                  >
+                    {leaderboardData.length === 0 ? (
+                      <p>No scores saved for this leaderboard yet.</p>
+                    ) : (
+                      <table
+                        style={{ width: "100%", borderCollapse: "collapse" }}
+                        className="leaderboard-table"
+                      >
+                        <thead>
+                          <tr>
+                            <th
+                              style={{
+                                borderBottom: "1px solid #ccc",
+                                padding: "0.25rem",
+                              }}
+                            >
+                              Rank
+                            </th>
+                            <th
+                              style={{
+                                borderBottom: "1px solid #ccc",
+                                padding: "0.25rem",
+                              }}
+                            >
+                              Name
+                            </th>
+                            <th
+                              style={{
+                                borderBottom: "1px solid #ccc",
+                                padding: "0.25rem",
+                              }}
+                            >
+                              Darts
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {leaderboardData.map((entry, i) => (
+                            <tr
+                              key={i}
+                              style={{ borderBottom: "1px solid #eee" }}
+                            >
+                              <td style={{ padding: "0.25rem" }}>{i + 1}</td>
+                              <td style={{ padding: "0.25rem" }}>
+                                {entry.username}
+                              </td>
+                              <td style={{ padding: "0.25rem" }}>
+                                {entry.darts}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        }
+      />
+
+      <Route path="/singles" element={<AppSingles options={options} />} />
+      <Route
+        path="/singles-skip"
+        element={<AppSinglesSkip options={options} />}
+      />
+      <Route path="/doubles" element={<AppDoubles options={options} />} />
+      <Route path="/trebles" element={<AppTrebles options={options} />} />
+    </Routes>
   );
 }
