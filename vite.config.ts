@@ -8,9 +8,9 @@ export default defineConfig({
     allowedHosts: ["nf6p4w-5173.csb.app"],
   },
   build: {
-    outDir: "dist",         // explicitly set output dir (default is 'dist')
+    outDir: "dist",         // optional, this is the default
     rollupOptions: {
-      input: resolve(__dirname, "public/index.html"),
+      input: resolve(__dirname, "index.html"),  // updated path!
     },
     emptyOutDir: true,
   },
