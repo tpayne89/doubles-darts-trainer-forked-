@@ -13,6 +13,7 @@ const DartboardHeatmap = ({ stats = [] }) => {
   const rSegmentOuter = rDoubleOuter;
   const segmentCount = 20;
   const angleStep = (2 * Math.PI) / segmentCount;
+
   const dartboardOrder = [
     6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20, 1, 18, 4, 13,
   ];
@@ -118,29 +119,37 @@ const DartboardHeatmap = ({ stats = [] }) => {
     return ring;
   };
 
-  const renderBulls = () => (
-    <>
-      <circle
-        cx={cx}
-        cy={cy}
-        r={rBull}
-        fill="none"
-        stroke="black"
-        strokeWidth="0.5"
-      />
-      <circle
-        cx={cx}
-        cy={cy}
-        r={rOuterBull}
-        fill="none"
-        stroke="black"
-        strokeWidth="0.5"
-      />
-    </>
-  );
+  const renderBulls = () => {
+    const outerBullAttempts = stats.find((s) => s.double === 25)?.attempts || 0;
+    const innerBullAttempts = stats.find((s) => s.double === 50)?.attempts || 0;
+
+    const outerBullColor = getSegmentColor(outerBullAttempts);
+    const innerBullColor = getSegmentColor(innerBullAttempts);
+
+    return (
+      <>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={rOuterBull}
+          fill={outerBullColor}
+          stroke="black"
+          strokeWidth="0.5"
+        />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={rBull}
+          fill={innerBullColor}
+          stroke="black"
+          strokeWidth="0.5"
+        />
+      </>
+    );
+  };
 
   const renderNumbers = () => {
-    const boardRotation = -9; // degrees of rotation applied to the whole board
+    const boardRotation = -9;
     return dartboardOrder.map((number, i) => {
       const angle = i * angleStep + angleStep / 2;
       const rText = (rTrebleInner + rDoubleInner) / 2;
@@ -156,7 +165,7 @@ const DartboardHeatmap = ({ stats = [] }) => {
           fontSize="10"
           fontWeight="bold"
           fill="black"
-          transform={`rotate(${-boardRotation}, ${x}, ${y})`} // opposite rotation to keep text horizontal
+          transform={`rotate(${-boardRotation}, ${x}, ${y})`}
         >
           {number}
         </text>
