@@ -749,6 +749,7 @@ export default function AppTrebles({ options }) {
               double: treble,
               attempts,
             }))}
+            mode="T"
           />
         )}
       </div>
