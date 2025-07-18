@@ -6,6 +6,9 @@ import AppDoubles from "./AppDoubles";
 import AppTrebles from "./AppTrebles";
 import "./styles.css";
 
+import { analyticsPromise } from "./firebase"; // your firebase.js exports this
+import { logEvent } from "firebase/analytics";
+
 const LEADERBOARD_KEYS = {
   "Singles (End)": "leaderboard_singles_end",
   "Singles (Bull)": "leaderboard_singles_bull",
@@ -62,13 +65,34 @@ export default function App() {
     setLeaderboardData(stored ? JSON.parse(stored) : []);
   }, [selectedLeaderboard]);
 
+  // Log app load event once
+  useEffect(() => {
+    analyticsPromise.then((analytics) => {
+      if (analytics) {
+        logEvent(analytics, "app_loaded");
+      }
+    });
+  }, []);
+
+  // Log mode/options change event whenever they change
+  useEffect(() => {
+    analyticsPromise.then((analytics) => {
+      if (analytics) {
+        logEvent(analytics, "mode_changed", {
+          mode,
+          enableSkips,
+          endOption,
+        });
+      }
+    });
+  }, [mode, enableSkips, endOption]);
+
   return (
     <Routes>
       <Route
         path="/"
         element={
           <div className="setup-page">
-            {/* Container to stack header and setup box vertically with spacing */}
             <div
               style={{
                 display: "flex",
@@ -78,7 +102,6 @@ export default function App() {
                 paddingTop: "1rem",
               }}
             >
-              {/* Header with icon and title */}
               <div
                 className="app-header"
                 style={{
@@ -98,9 +121,7 @@ export default function App() {
                 </h1>
               </div>
 
-              {/* Setup box with all other content */}
               <div className="setup-box">
-                {/* Game Mode Selection */}
                 <div className="section game-mode-section">
                   <h2 className="section-title">Select Game Mode</h2>
                   <div className="button-group-setup">
@@ -118,7 +139,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Skip Option */}
                 {mode === "singles" && (
                   <div className="section enable-skip-section">
                     <h3 className="section-title">Skip for Doubles/Trebles?</h3>
@@ -143,7 +163,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* End Option */}
                 <div className="section end-option-section">
                   <h3 className="section-title">What happens after 20?</h3>
                   <div className="button-group-setupend">
@@ -174,7 +193,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Start Game */}
                 <div className="section start-button-section">
                   <button
                     className="start-button"
@@ -190,7 +208,6 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Leaderboard Dropdown */}
                 <div
                   className="section leaderboard-section"
                   style={{ marginTop: "2rem" }}
@@ -214,7 +231,6 @@ export default function App() {
                     ))}
                   </select>
 
-                  {/* Leaderboard Table */}
                   <div
                     style={{
                       marginTop: "1rem",
