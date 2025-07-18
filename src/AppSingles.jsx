@@ -775,6 +775,7 @@ export default function AppSingles({ options }) {
               double: single,
               attempts,
             }))}
+            mode="S"
           />
         )}
       </div>
