@@ -745,6 +745,7 @@ export default function AppDoubles({ options }) {
         {showHeatmap && (
           <DartboardHeatmap
             stats={statsByTarget} // or statsWithCumulative
+            mode="D"
           />
         )}
       </div>
