@@ -715,6 +715,7 @@ export default function AppSinglesSkip({ options }) {
               double: single,
               attempts,
             }))}
+            mode="S"
           />
         )}
       </div>
