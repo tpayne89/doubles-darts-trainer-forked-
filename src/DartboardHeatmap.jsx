@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 
-const DartboardHeatmap = ({ stats = [] }) => {
+const DartboardHeatmap = ({ stats = [], mode = "D" }) => {
   const cx = 150;
   const cy = 150;
   const rBull = 5;
@@ -18,12 +18,37 @@ const DartboardHeatmap = ({ stats = [] }) => {
     6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20, 1, 18, 4, 13,
   ];
 
+  const [tooltip, setTooltip] = useState(null);
+
   const getSegmentColor = (attempts) => {
     if (attempts === 0) return "#ccc";
     const ratio = Math.min(attempts / 30, 1); // 30+ attempts = red
     const r = Math.round(255 * ratio);
     const g = Math.round(255 * (1 - ratio));
     return `rgb(${r},${g},0)`;
+  };
+
+  const showTooltip = (e, text) => {
+    const bounds = e.currentTarget.getBoundingClientRect();
+    setTooltip({
+      x: e.clientX - bounds.left,
+      y: e.clientY - bounds.top,
+      text,
+    });
+  };
+
+  const hideTooltip = () => setTooltip(null);
+
+  const formatTooltipText = (number, attempts) => {
+    let label;
+    if (number === 50) {
+      label = "Bull";
+    } else if (number === 25) {
+      label = "25";
+    } else {
+      label = `${mode}${number}`;
+    }
+    return `(${label}) ${attempts} attempt${attempts !== 1 ? "s" : ""}`;
   };
 
   const renderSegments = () => {
@@ -51,6 +76,8 @@ const DartboardHeatmap = ({ stats = [] }) => {
         Z
       `;
 
+      const tooltipText = formatTooltipText(number, attempts);
+
       return (
         <path
           key={i}
@@ -58,6 +85,9 @@ const DartboardHeatmap = ({ stats = [] }) => {
           fill={fillColor}
           stroke="#888"
           strokeWidth="0.5"
+          onMouseEnter={(e) => showTooltip(e, tooltipText)}
+          onMouseLeave={hideTooltip}
+          onClick={(e) => showTooltip(e, tooltipText)}
         />
       );
     });
@@ -135,6 +165,13 @@ const DartboardHeatmap = ({ stats = [] }) => {
           fill={outerBullColor}
           stroke="black"
           strokeWidth="0.5"
+          onMouseEnter={(e) =>
+            showTooltip(e, formatTooltipText(25, outerBullAttempts))
+          }
+          onMouseLeave={hideTooltip}
+          onClick={(e) =>
+            showTooltip(e, formatTooltipText(25, outerBullAttempts))
+          }
         />
         <circle
           cx={cx}
@@ -143,6 +180,13 @@ const DartboardHeatmap = ({ stats = [] }) => {
           fill={innerBullColor}
           stroke="black"
           strokeWidth="0.5"
+          onMouseEnter={(e) =>
+            showTooltip(e, formatTooltipText(50, innerBullAttempts))
+          }
+          onMouseLeave={hideTooltip}
+          onClick={(e) =>
+            showTooltip(e, formatTooltipText(50, innerBullAttempts))
+          }
         />
       </>
     );
@@ -166,6 +210,7 @@ const DartboardHeatmap = ({ stats = [] }) => {
           fontWeight="bold"
           fill="black"
           transform={`rotate(${-boardRotation}, ${x}, ${y})`}
+          pointerEvents="none"
         >
           {number}
         </text>
@@ -174,32 +219,51 @@ const DartboardHeatmap = ({ stats = [] }) => {
   };
 
   return (
-    <svg width="300" height="215" viewBox="45 42 215 215">
-      <g transform="rotate(-9, 150, 150)">
-        {renderSegments()}
-        {renderSegmentLines()}
-        {renderTrebleRing()}
-        {renderBulls()}
-        {renderNumbers()}
-        {/* Doubles ring outline */}
-        <circle
-          cx={cx}
-          cy={cy}
-          r={rDoubleInner}
-          stroke="black"
-          strokeWidth="0.5"
-          fill="none"
-        />
-        <circle
-          cx={cx}
-          cy={cy}
-          r={rDoubleOuter}
-          stroke="black"
-          strokeWidth="0.5"
-          fill="none"
-        />
-      </g>
-    </svg>
+    <div style={{ position: "relative", width: 300, height: 215 }}>
+      <svg width="300" height="215" viewBox="45 42 215 215">
+        <g transform="rotate(-9, 150, 150)">
+          {renderSegments()}
+          {renderSegmentLines()}
+          {renderTrebleRing()}
+          {renderBulls()}
+          {renderNumbers()}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={rDoubleInner}
+            stroke="black"
+            strokeWidth="0.5"
+            fill="none"
+          />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={rDoubleOuter}
+            stroke="black"
+            strokeWidth="0.5"
+            fill="none"
+          />
+        </g>
+      </svg>
+      {tooltip && (
+        <div
+          style={{
+            position: "absolute",
+            top: tooltip.y,
+            left: tooltip.x,
+            background: "white",
+            padding: "4px 8px",
+            border: "1px solid black",
+            borderRadius: "4px",
+            fontSize: "12px",
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {tooltip.text}
+        </div>
+      )}
+    </div>
   );
 };
 
